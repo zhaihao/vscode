@@ -62,6 +62,8 @@ export class QuickInputTreeController extends Disposable {
 	private readonly _onDidCheckedLeafItemsChange = this._register(new Emitter<ReadonlyArray<IQuickTreeItem>>());
 	readonly onDidChangeCheckedLeafItems = this._onDidCheckedLeafItemsChange.event;
 
+	private _canSelectMany = true;
+
 	private readonly _onLeave = this._register(new Emitter<void>());
 	/**
 	 * Event that is fired when the tree would no longer have focus.
@@ -108,7 +110,7 @@ export class QuickInputTreeController extends Disposable {
 				findWidgetEnabled: false,
 				alwaysConsumeMouseWheel: true,
 				hideTwistiesOfChildlessElements: true,
-				renderIndentGuides: RenderIndentGuides.None,
+				renderIndentGuides: RenderIndentGuides.Always,
 				expandOnDoubleClick: true,
 				expandOnlyOnTwistieClick: true,
 				disableExpandOnSpacebar: true,
@@ -130,6 +132,16 @@ export class QuickInputTreeController extends Disposable {
 
 	get renderer(): QuickInputTreeRenderer<IQuickTreeItem> {
 		return this._renderer;
+	}
+
+	/**
+	 * Controls whether checkboxes are shown. When false, the tree behaves as a
+	 * single-select navigation picker (no checkboxes or check-all control).
+	 */
+	set canSelectMany(value: boolean) {
+		this._canSelectMany = value;
+		this._renderer.canSelectMany = value;
+		this._tree.rerender();
 	}
 
 	get displayed() {
@@ -286,6 +298,14 @@ export class QuickInputTreeController extends Disposable {
 			// Check if the item is pickable (defaults to true if not specified)
 			if (item.pickable === false) {
 				// For non-pickable items, set it as the active item and fire the accept event
+				this._tree.setFocus([item]);
+				this._onDidAccept.fire();
+				return;
+			}
+
+			// In single-select navigation mode (no checkboxes), clicking a pickable
+			// item should accept it (navigate + close) rather than toggle a checkbox.
+			if (!this._canSelectMany) {
 				this._tree.setFocus([item]);
 				this._onDidAccept.fire();
 				return;
