@@ -58,6 +58,12 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 	 */
 	public readonly onDidDisposeFocusedElement = this._onDidDisposeFocusedElement.event;
 
+	/**
+	 * When false, checkboxes are hidden for all items (single-select / navigation mode).
+	 * Defaults to true to preserve existing multi-select behavior.
+	 */
+	public canSelectMany: boolean = true;
+
 	constructor(
 		private readonly _hoverDelegate: IHoverDelegate | undefined,
 		private readonly _buttonTriggeredEmitter: Emitter<IQuickTreeItemButtonEvent<T>>,
@@ -112,10 +118,7 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 		const quickTreeItem = node.element;
 
 		// Checkbox
-		if (quickTreeItem.pickable === false) {
-			// Hide checkbox for non-pickable items
-			templateData.checkbox.domNode.style.display = 'none';
-		} else {
+		if (this.canSelectMany && quickTreeItem.pickable !== false) {
 			const checkbox = templateData.checkbox;
 			checkbox.domNode.style.display = '';
 			checkbox.checked = quickTreeItem.checked ?? false;
@@ -124,6 +127,9 @@ export class QuickInputTreeRenderer<T extends IQuickTreeItem> extends Disposable
 				checkbox.disable();
 			}
 			store.add(checkbox.onChange((e) => this._checkboxStateHandler.setCheckboxState(quickTreeItem, checkbox.checked)));
+		} else {
+			// Hide checkbox for non-pickable items or when canSelectMany is false
+			templateData.checkbox.domNode.style.display = 'none';
 		}
 
 		// Icon

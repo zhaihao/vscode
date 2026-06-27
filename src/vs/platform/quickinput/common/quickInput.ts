@@ -1118,6 +1118,13 @@ export interface IQuickTree<T extends IQuickTreeItem> extends IQuickInput {
 	sortByLabel: boolean;
 
 	/**
+	 * Whether items can be multi-selected via checkboxes. When false, checkboxes
+	 * (and the check-all control) are hidden, making the tree a single-select
+	 * navigation picker. Defaults to true.
+	 */
+	canSelectMany: boolean;
+
+	/**
 	 * The currently active items.
 	 */
 	activeItems: ReadonlyArray<T>;

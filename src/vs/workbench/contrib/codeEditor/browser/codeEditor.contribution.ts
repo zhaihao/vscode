@@ -14,6 +14,7 @@ import './largeFileOptimizations.js';
 import './inspectEditorTokens/inspectEditorTokens.js';
 import './quickaccess/gotoLineQuickAccess.js';
 import './quickaccess/gotoSymbolQuickAccess.js';
+import './quickaccess/gotoSymbolTreePicker.js';
 import './saveParticipants.js';
 import './toggleColumnSelection.js';
 import './toggleMinimap.js';

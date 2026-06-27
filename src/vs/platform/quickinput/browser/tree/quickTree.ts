@@ -26,6 +26,7 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 	private readonly _sortByLabel = observableValue('sortByLabel', true);
 	private readonly _activeItems = observableValue<readonly T[]>('activeItems', []);
 	private readonly _itemTree = observableValue<ReadonlyArray<T>>('itemTree', []);
+	private readonly _canSelectMany = observableValue('canSelectMany', true);
 
 	readonly onDidChangeValue = Event.fromObservable(this._value, this._store);
 	readonly onDidChangeActive = Event.fromObservable(this._activeItems, this._store);
@@ -68,6 +69,9 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 
 	get sortByLabel(): boolean { return this._sortByLabel.get(); }
 	set sortByLabel(sortByLabel: boolean) { this._sortByLabel.set(sortByLabel, undefined); }
+
+	get canSelectMany(): boolean { return this._canSelectMany.get(); }
+	set canSelectMany(canSelectMany: boolean) { this._canSelectMany.set(canSelectMany, undefined); }
 
 	get activeItems(): readonly T[] { return this._activeItems.get(); }
 	set activeItems(activeItems: readonly T[]) { this._activeItems.set(activeItems, undefined); }
@@ -114,13 +118,13 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 			const visibilities: Visibilities = {
 				title: !!this.title || !!this.step || !!this.titleButtons.length,
 				description: !!this.description,
-				checkAll: true,
-				checkBox: true,
+				checkAll: this.canSelectMany,
+				checkBox: this.canSelectMany,
 				inputBox: true,
 				progressBar: true,
 				visibleCount: true,
-				count: true,
-				ok: true,
+				count: this.canSelectMany,
+				ok: this.canSelectMany,
 				list: false,
 				tree: true,
 				message: !!this.validationMessage,
@@ -165,13 +169,13 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 		const visibilities: Visibilities = {
 			title: !!this.title || !!this.step || !!this.titleButtons.length,
 			description: !!this.description,
-			checkAll: true,
-			checkBox: true,
+			checkAll: this.canSelectMany,
+			checkBox: this.canSelectMany,
 			inputBox: true,
 			progressBar: true,
 			visibleCount: true,
-			count: true,
-			ok: true,
+			count: this.canSelectMany,
+			ok: this.canSelectMany,
 			tree: true,
 			message: !!this.validationMessage
 		};
@@ -220,6 +224,10 @@ export class QuickTree<T extends IQuickTreeItem> extends QuickInput implements I
 		this.registerVisibleAutorun((reader) => {
 			const sortByLabel = this._sortByLabel.read(reader);
 			this.ui.tree.sortByLabel = sortByLabel;
+		});
+		this.registerVisibleAutorun((reader) => {
+			const canSelectMany = this._canSelectMany.read(reader);
+			this.ui.tree.canSelectMany = canSelectMany;
 		});
 		this.registerVisibleAutorun((reader) => {
 			const itemTree = this._itemTree.read(reader);
