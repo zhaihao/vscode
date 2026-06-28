@@ -109,7 +109,7 @@ npm run gulp vscode-darwin-x64
 
 产物在项目上级目录:
 
-```
+```shell
 ../VSCode-darwin-arm64/Code - OSS.app
 ```
 
@@ -154,11 +154,11 @@ node build/darwin/create-dmg.ts
 
 | 能力     | 官方版 (VS Code)                         | 你的 OSS 版                                                   | 默认复用? |
 | -------- | ---------------------------------------- | ------------------------------------------------------------- | --------- |
-| 配置目录 | `~/Library/Application Support/Code`     | `…/Application Support/Code - OSS`(开发模式是 `code-oss-dev`) | ❌ 隔离    |
-| 扩展目录 | `~/.vscode/extensions`                   | `~/.vscode-oss/extensions`                                    | ❌ 隔离    |
-| 扩展市场 | 有(`product.extensionsGallery`)          | ❌ 无(装不了商店扩展)                                          | ❌         |
-| 设置同步 | 有(`product["configurationSync.store"]`) | ❌ 无                                                          | ❌         |
-| 登录账号 | 绑定同步服务                             | 无同步端点                                                    | ❌         |
+| 配置目录 | `~/Library/Application Support/Code`     | `…/Application Support/Code - OSS`(开发模式是 `code-oss-dev`)| ❌ 隔离   |
+| 扩展目录 | `~/.vscode/extensions`                   | `~/.vscode-oss/extensions`                                    | ❌ 隔离   |
+| 扩展市场 | 有(`product.extensionsGallery`)          | ❌ 无(装不了商店扩展)                                         | ❌       |
+| 设置同步 | 有(`product["configurationSync.store"]`) | ❌ 无                                                          | ❌       |
+| 登录账号 | 绑定同步服务                             | 无同步端点                                                    | ❌       |
 
 **根本原因**:这些全靠 `product.json` 配置。OSS 版的 `product.json` 故意精简——没有 `extensionsGallery`、没有 `configurationSync.store`,`dataFolderName` 也不同(`.vscode-oss` vs `.vscode`)。
 
@@ -204,6 +204,7 @@ OSS 版用独立目录,官方版互不干扰。缺点:扩展要单独装(OSS 版
 ### 关于登录账号
 
 Settings Sync 的登录(GitHub / Microsoft)走 `configurationSync.store.authenticationProviders`,**OSS 版默认没有这个端点**,所以:
+
 - 不做任何修改 → 无法登录、无法同步。
 - 用做法 B 注入 `configurationSync.store` → 可以登录官方账号同步(和官方版共享同一份云端同步数据)。
 
@@ -219,11 +220,12 @@ Settings Sync 的登录(GitHub / Microsoft)走 `configurationSync.store.authenti
 | 改了代码 Reload 无变化                   | 确认 watch 终端有编译完成日志;结构性改动需重启实例 |
 | 找不到 Electron                          | `npm install` 或 `npm run electron`                |
 
-
 ## 本地发布
+
 ```shell
 # 确保官方版已退出,然后一键编译+打包+替换+启动
 cd /Users/zhaihao/Code/node/vscode && \
+npm i && \
 npm run gulp vscode-darwin-arm64  && \
 rm -rf "/Applications/Visual Studio Code.app" && \
 mv "../VSCode-darwin-arm64/Visual Studio Code.app" /Applications/ && \
