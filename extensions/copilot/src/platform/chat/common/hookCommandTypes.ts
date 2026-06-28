@@ -56,3 +56,27 @@ export interface IPostToolUseHookSpecificCommandOutput {
 }
 
 //#endregion
+
+//#region PreAskUser
+
+/**
+ * Input written to stdin for a PreAskUser hook command.
+ */
+export interface IPreAskUserHookCommandInput {
+	readonly tool_name: string;
+	readonly tool_input: unknown;
+	readonly tool_use_id: string;
+}
+
+/**
+ * Hook-specific output fields returned by a PreAskUser hook command (inside `hookSpecificOutput`).
+ */
+export interface IPreAskUserHookSpecificCommandOutput {
+	readonly hookEventName?: string;
+	readonly permissionDecision?: 'allow' | 'deny' | 'ask';
+	readonly permissionDecisionReason?: string;
+	readonly updatedInput?: object;
+	readonly additionalContext?: string;
+}
+
+//#endregion

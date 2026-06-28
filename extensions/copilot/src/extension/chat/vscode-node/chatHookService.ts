@@ -6,7 +6,7 @@
 import * as l10n from '@vscode/l10n';
 import type * as vscode from 'vscode';
 import { IChatHookService, IPostToolUseHookResult, IPreToolUseHookResult } from '../../../platform/chat/common/chatHookService';
-import { IPostToolUseHookCommandInput, IPostToolUseHookSpecificCommandOutput, IPreToolUseHookCommandInput, IPreToolUseHookSpecificCommandOutput } from '../../../platform/chat/common/hookCommandTypes';
+import { IPostToolUseHookCommandInput, IPostToolUseHookSpecificCommandOutput, IPreAskUserHookCommandInput, IPreAskUserHookSpecificCommandOutput, IPreToolUseHookCommandInput, IPreToolUseHookSpecificCommandOutput } from '../../../platform/chat/common/hookCommandTypes';
 import { HookCommandResultKind, IHookCommandResult, IHookExecutor } from '../../../platform/chat/common/hookExecutor';
 import { IHooksOutputChannel } from '../../../platform/chat/common/hooksOutputChannel';
 import { ISessionTranscriptService } from '../../../platform/chat/common/sessionTranscriptService';
@@ -18,6 +18,7 @@ import { CancellationToken } from '../../../util/vs/base/common/cancellation';
 import { StopWatch } from '../../../util/vs/base/common/stopwatch';
 import { formatHookErrorMessage, processHookResults } from '../../intents/node/hookResultProcessor';
 import { IToolsService, isToolValidationError } from '../../tools/common/toolsService';
+import { ToolName } from '../../tools/common/toolNames';
 import { ChatHookTelemetry } from './chatHookTelemetry';
 
 const permissionPriority: Record<string, number> = { 'deny': 2, 'ask': 1, 'allow': 0 };
@@ -346,13 +347,36 @@ export class ChatHookService implements IChatHookService {
 	}
 
 	async executePreToolUseHook(toolName: string, toolInput: unknown, toolCallId: string, hooks: vscode.ChatRequestHooks | undefined, sessionId?: string, token?: vscode.CancellationToken, outputStream?: vscode.ChatResponseStream): Promise<IPreToolUseHookResult | undefined> {
-		const hookInput: IPreToolUseHookCommandInput = {
+		// Route to the appropriate hook type based on tool name:
+		// - vscode_askQuestions (the agent asking the user a question) -> PreAskUser
+		// - all other tools -> PreToolUse
+		const hookType = toolName === ToolName.CoreAskQuestions ? 'PreAskUser' : 'PreToolUse';
+		return this._executePreHookWithPermission(hookType, toolName, toolInput, toolCallId, hooks, sessionId, token, outputStream);
+	}
+
+	/**
+	 * Shared implementation for pre-tool hooks that return a permission decision.
+	 *
+	 * Used by {@link executePreToolUseHook} which routes between `PreToolUse`
+	 * (regular tools) and `PreAskUser` (the vscode_askQuestions tool).
+	 */
+	private async _executePreHookWithPermission(
+		hookType: 'PreToolUse' | 'PreAskUser',
+		toolName: string,
+		toolInput: unknown,
+		toolCallId: string,
+		hooks: vscode.ChatRequestHooks | undefined,
+		sessionId?: string,
+		token?: vscode.CancellationToken,
+		outputStream?: vscode.ChatResponseStream,
+	): Promise<IPreToolUseHookResult | undefined> {
+		const hookInput: IPreToolUseHookCommandInput & IPreAskUserHookCommandInput = {
 			tool_name: toolName,
 			tool_input: toolInput,
 			tool_use_id: toolCallId,
 		};
 		const results = await this.executeHook(
-			'PreToolUse',
+			hookType,
 			hooks,
 			hookInput,
 			sessionId,
@@ -374,7 +398,7 @@ export class ChatHookService implements IChatHookService {
 		const allAdditionalContext: string[] = [];
 
 		processHookResults({
-			hookType: 'PreToolUse',
+			hookType,
 			results,
 			outputStream,
 			logService: this._logService,
@@ -383,7 +407,7 @@ export class ChatHookService implements IChatHookService {
 					return;
 				}
 
-				const hookOutput = output as { hookSpecificOutput?: IPreToolUseHookSpecificCommandOutput };
+				const hookOutput = output as { hookSpecificOutput?: IPreToolUseHookSpecificCommandOutput | IPreAskUserHookSpecificCommandOutput };
 				const hookSpecificOutput = hookOutput.hookSpecificOutput;
 				if (!hookSpecificOutput) {
 					return;
@@ -404,7 +428,7 @@ export class ChatHookService implements IChatHookService {
 				if (!(decision in permissionPriority)) {
 					const message = `Invalid permissionDecision value '${String(decision)}'. Expected 'allow', 'deny', or 'ask'. Field was ignored.`;
 					this._logService.warn(`[ChatHookService] ${message}`);
-					this._outputChannel.appendLine(`[PreToolUse] ${message}`);
+					this._outputChannel.appendLine(`[${hookType}] ${message}`);
 					return;
 				}
 
@@ -456,7 +480,7 @@ export class ChatHookService implements IChatHookService {
 				const numbered = denyReasons.map((r, i) => `${i + 1}. ${r}`).join('\n');
 				renderedReason = l10n.t('Tried to use {0} - {1}', toolName, '\n' + numbered);
 			}
-			outputStream?.hookProgress('PreToolUse', formatHookErrorMessage(renderedReason));
+			outputStream?.hookProgress(hookType, formatHookErrorMessage(renderedReason));
 		}
 
 		// Validate updatedInput against the tool's input schema before returning it
@@ -465,7 +489,7 @@ export class ChatHookService implements IChatHookService {
 			if (isToolValidationError(validationResult)) {
 				const message = `Discarding updatedInput for tool '${toolName}': schema validation failed: ${validationResult.error}`;
 				this._logService.warn(`[ChatHookService] ${message}`);
-				this._outputChannel.appendLine(`[PreToolUse] ${message}`);
+				this._outputChannel.appendLine(`[${hookType}] ${message}`);
 				lastUpdatedInput = undefined;
 			}
 		}

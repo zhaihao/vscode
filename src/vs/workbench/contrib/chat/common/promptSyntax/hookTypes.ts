@@ -20,6 +20,7 @@ export enum HookType {
 	SubagentStop = 'SubagentStop',
 	Stop = 'Stop',
 	ErrorOccurred = 'ErrorOccurred',
+	PreAskUser = 'PreAskUser',
 }
 
 /**
@@ -38,6 +39,7 @@ export const HOOKS_BY_TARGET: Record<Target, Record<string, HookType>> = {
 		'SubagentStart': HookType.SubagentStart,
 		'SubagentStop': HookType.SubagentStop,
 		'Stop': HookType.Stop,
+		'PreAskUser': HookType.PreAskUser,
 	},
 	// see https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-hooks#types-of-hooks
 	[Target.GitHubCopilot]: {
@@ -118,5 +120,9 @@ export const HOOK_METADATA: { [key in HookType]: IHookTypeMeta } = {
 	[HookType.ErrorOccurred]: {
 		label: nls.localize('hookType.errorOccurred.label', "Error Occurred"),
 		description: nls.localize('hookType.errorOccurred.description', "Executed when an error occurs during the agent session.")
+	},
+	[HookType.PreAskUser]: {
+		label: nls.localize('hookType.preAskUser.label', "Pre-Ask User"),
+		description: nls.localize('hookType.preAskUser.description', "Executed before the agent asks the user a question (vscode_askQuestions tool).")
 	}
 };

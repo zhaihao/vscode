@@ -600,6 +600,17 @@ async function appendHookContext(
 	toolInput: unknown,
 	promptContext: IBuildPromptContext,
 ): Promise<void> {
+	// The vscode_askQuestions tool uses PreAskUser instead of PreToolUse, and has no PostToolUse hook.
+	// Append its pre-hook context (if any) and return before running any PostToolUse logic.
+	if (props.toolCall.name === ToolName.CoreAskQuestions) {
+		if (preHookResult?.additionalContext) {
+			for (const context of preHookResult.additionalContext) {
+				toolResult.content.push(new LanguageModelTextPart('\n<PreAskUser-context>\n' + context + '\n</PreAskUser-context>'));
+			}
+		}
+		return;
+	}
+
 	// Append additional context from preToolUse hook
 	if (preHookResult?.additionalContext) {
 		for (const context of preHookResult.additionalContext) {
